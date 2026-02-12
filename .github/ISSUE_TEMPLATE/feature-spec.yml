@@ -1,0 +1,124 @@
+name: Specification
+description: Structured specification (SDD spec-first)
+title: "[SPEC] "
+labels: ["spec"]
+body:
+  # ── Layer 1: Requirements (CO business potřebuje) ──────────────────
+  - type: markdown
+    attributes:
+      value: |
+        ## 1. Requirements
+        *Problémová doména — CO business potřebuje*
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Účel a kontext funkcionality. Co a proč.
+      placeholder: |
+        Systém upomínek faktur (dunning) automaticky eskaluje nezaplacené faktury
+        přes sérii upomínek až k pozastavení služeb. Cílem je...
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      description: Pozorovatelné chování ve formátu Given/When/Then.
+      placeholder: |
+        - Given faktura je 14 dní po splatnosti
+          When systém vyhodnotí stav faktury
+          Then se odešle první upomínka a stav se změní na REMINDER_1
+
+        - Given faktura je v jakémkoliv dunning stavu
+          When přijde platba
+          Then se stav změní na PAID
+    validations:
+      required: true
+
+  - type: textarea
+    id: domain_glossary
+    attributes:
+      label: Domain Glossary
+      description: Klíčové pojmy z business domény a jejich definice.
+      placeholder: |
+        - **Dunning** — proces eskalace nezaplacených faktur
+        - **Grace period** — doba po splatnosti kdy se ještě neposílá upomínka
+        - **Write-off** — odpis pohledávky jako nedobytné
+    validations:
+      required: true
+
+  # ── Layer 2: Specification (CO systém dělá) ────────────────────────
+  - type: markdown
+    attributes:
+      value: |
+        ## 2. Specification
+        *Řešení — CO přesně systém dělá*
+
+  - type: textarea
+    id: inputs_outputs
+    attributes:
+      label: Inputs / Outputs
+      description: Datové typy, formáty, struktury. Konkrétní příklady.
+      placeholder: |
+        **Inputs:**
+        - `DunningEvent`: { type: 'payment_failed' | 'payment_received' | 'day_passed', invoiceId: string, ... }
+
+        **Outputs:**
+        - `DunningResult`: { newState: DunningState, actions: Action[] }
+        - `Action`: { type: 'send_email' | 'schedule_next' | 'suspend_service', ... }
+    validations:
+      required: true
+
+  - type: textarea
+    id: preconditions_postconditions
+    attributes:
+      label: Preconditions / Postconditions
+      description: Stavové podmínky a invarianty.
+      placeholder: |
+        **Preconditions:**
+        - Faktura musí existovat a mít platný due date
+        - Stav musí být jeden z definovaných DunningState
+
+        **Postconditions:**
+        - Stav se změní pouze přes definované přechody (žádný přímý skok)
+        - Každý přechod vrátí seznam akcí k provedení
+        - PAID a WRITTEN_OFF jsou terminální stavy (žádné další přechody)
+    validations:
+      required: true
+
+  # ── Layer 3: Architecture (JAK je to strukturované) ────────────────
+  - type: markdown
+    attributes:
+      value: |
+        ## 3. Architecture
+        *Struktura — JAK je řešení organizované*
+
+  - type: textarea
+    id: behavioral_model
+    attributes:
+      label: Behavioral Model
+      description: State diagram, sekvenční logika (Mermaid, tabulka přechodů).
+      placeholder: |
+        ```mermaid
+        stateDiagram-v2
+            ACTIVE --> OVERDUE : due_date_passed
+            OVERDUE --> REMINDER_1 : 14 days elapsed
+            REMINDER_1 --> PAID : payment_received
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: tech_constraints
+    attributes:
+      label: Technical Constraints
+      description: Tech stack, patterns, rozhraní, packaging.
+      placeholder: |
+        - TypeScript, npm balíček
+        - Pure functions, žádné side effects
+        - Exportovat: transition(), createInitialState(), typy
+        - Žádná runtime závislost na DB, HTTP, messaging
+    validations:
+      required: true
