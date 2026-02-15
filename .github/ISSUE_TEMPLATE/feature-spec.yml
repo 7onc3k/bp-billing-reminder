@@ -25,15 +25,19 @@ body:
     id: acceptance_criteria
     attributes:
       label: Acceptance Criteria
-      description: Pozorovatelné chování ve formátu Given/When/Then.
+      description: |
+        Pozorovatelné chování ve formátu Given/When/Then s konkrétními hodnotami.
+        Obsahuje implicitně vstupy, výstupy, pre/postconditions.
       placeholder: |
-        - Given faktura je 14 dní po splatnosti
-          When systém vyhodnotí stav faktury
-          Then se odešle první upomínka a stav se změní na REMINDER_1
+        - Given invoice is in state OVERDUE for 14 business days
+          When the system evaluates the invoice state
+          Then state transitions to REMINDER_1
+          And action SEND_REMINDER_EMAIL is returned
 
-        - Given faktura je v jakémkoliv dunning stavu
-          When přijde platba
-          Then se stav změní na PAID
+        - Given invoice is in any dunning state
+          When payment is received
+          Then state transitions to PAID
+          And no further actions are scheduled
     validations:
       required: true
 
@@ -43,57 +47,54 @@ body:
       label: Domain Glossary
       description: Klíčové pojmy z business domény a jejich definice.
       placeholder: |
-        - **Dunning** — proces eskalace nezaplacených faktur
-        - **Grace period** — doba po splatnosti kdy se ještě neposílá upomínka
-        - **Write-off** — odpis pohledávky jako nedobytné
+        - **Dunning** — process of escalating unpaid invoices through reminders
+        - **Grace period** — time after due date before first reminder
+        - **Write-off** — marking a receivable as uncollectable
     validations:
       required: true
 
-  # ── Layer 2: Specification (CO systém dělá) ────────────────────────
+  # ── Layer 2: Architecture (JAK je to strukturované) ────────────────
   - type: markdown
     attributes:
       value: |
-        ## 2. Specification
-        *Řešení — CO přesně systém dělá*
-
-  - type: textarea
-    id: inputs_outputs
-    attributes:
-      label: Inputs / Outputs
-      description: Datové typy, formáty, struktury. Konkrétní příklady.
-      placeholder: |
-        **Inputs:**
-        - `DunningEvent`: { type: 'payment_failed' | 'payment_received' | 'day_passed', invoiceId: string, ... }
-
-        **Outputs:**
-        - `DunningResult`: { newState: DunningState, actions: Action[] }
-        - `Action`: { type: 'send_email' | 'schedule_next' | 'suspend_service', ... }
-    validations:
-      required: true
-
-  - type: textarea
-    id: preconditions_postconditions
-    attributes:
-      label: Preconditions / Postconditions
-      description: Stavové podmínky a invarianty.
-      placeholder: |
-        **Preconditions:**
-        - Faktura musí existovat a mít platný due date
-        - Stav musí být jeden z definovaných DunningState
-
-        **Postconditions:**
-        - Stav se změní pouze přes definované přechody (žádný přímý skok)
-        - Každý přechod vrátí seznam akcí k provedení
-        - PAID a WRITTEN_OFF jsou terminální stavy (žádné další přechody)
-    validations:
-      required: true
-
-  # ── Layer 3: Architecture (JAK je to strukturované) ────────────────
-  - type: markdown
-    attributes:
-      value: |
-        ## 3. Architecture
+        ## 2. Architecture
         *Struktura — JAK je řešení organizované*
+
+  - type: textarea
+    id: type_definitions
+    attributes:
+      label: Type Definitions
+      description: Datové typy, interfaces, enums. Definují "tvar" dat v systému.
+      placeholder: |
+        ```typescript
+        type DunningState = 'ISSUED' | 'DUE_SOON' | 'OVERDUE' | ...;
+
+        interface DunningEvent {
+          type: 'PAYMENT_RECEIVED' | 'DAY_PASSED' | 'MANUAL_OVERRIDE';
+          invoiceId: string;
+          timestamp: Date;
+        }
+
+        interface DunningResult {
+          newState: DunningState;
+          actions: ActionDescriptor[];
+        }
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: invariants
+    attributes:
+      label: Invariants
+      description: Business pravidla která musí vždy platit. Formální constraints.
+      placeholder: |
+        - State transitions only happen through defined edges (no direct jumps)
+        - PAID and WRITTEN_OFF are terminal states (no outgoing transitions)
+        - Time calculations use business days only (exclude weekends + holidays)
+        - Every transition returns at least one action descriptor
+    validations:
+      required: true
 
   - type: textarea
     id: behavioral_model
@@ -103,8 +104,9 @@ body:
       placeholder: |
         ```mermaid
         stateDiagram-v2
-            ACTIVE --> OVERDUE : due_date_passed
-            OVERDUE --> REMINDER_1 : 14 days elapsed
+            ISSUED --> DUE_SOON : approaching_due_date
+            DUE_SOON --> OVERDUE : due_date_passed
+            OVERDUE --> REMINDER_1 : 14_business_days
             REMINDER_1 --> PAID : payment_received
         ```
     validations:
@@ -116,9 +118,9 @@ body:
       label: Technical Constraints
       description: Tech stack, patterns, rozhraní, packaging.
       placeholder: |
-        - TypeScript, npm balíček
-        - Pure functions, žádné side effects
-        - Exportovat: transition(), createInitialState(), typy
-        - Žádná runtime závislost na DB, HTTP, messaging
+        - TypeScript, npm package
+        - Pure functions, no side effects
+        - Exports: transition(), createInitialState(), types
+        - No runtime dependency on DB, HTTP, messaging
     validations:
       required: true
