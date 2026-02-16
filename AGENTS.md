@@ -45,6 +45,7 @@ tests/
 ```
 
 **Public API exports:**
+
 - `transition(instance, event): TransitionResult | null`
 - `createInstance(invoiceId, dueDate, config?): DunningInstance`
 - All types (DunningState, DunningEvent, ActionDescriptor, DunningConfig, DunningInstance, TransitionResult)
@@ -129,21 +130,26 @@ describe('Time-based transitions (happy path)', () => {
 })
 ```
 
+**Critical rules:**
+
 - Tests verify behavior described in spec, not implementation details
+- Expected values come from **acceptance criteria**, never from observing what code currently does
 - Do not weaken tests to make them pass — fix the code instead
+- A failing test is a signal to fix the code, not to adjust the test
+- Write tests **before** implementation (TDD) — this prevents deriving expected values from buggy code
+- Coverage is necessary but not sufficient — mutation score is the primary quality metric
 
 ## Quality Gates
 
 **Before merge (must pass):**
+
 1. CI green — typecheck + lint + prettier + tests + build
 2. Coverage does not drop below threshold
 3. PR references an issue (`Refs #N` / `Closes #N`)
 4. PR description is complete
 5. Package builds successfully (`tsc` → `dist/`)
 
-**End of project (measured, not blocking):**
-6. Mutation score (Stryker report)
-7. Package is publish-ready (exports work, README exists)
+**End of project (measured, not blocking):** 6. Mutation score (Stryker report) 7. Package is publish-ready (exports work, README exists)
 
 ## CI Pipeline
 
