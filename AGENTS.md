@@ -91,6 +91,79 @@ PRs serve as a **governance interface** — a human monitors progress, can inter
 - PR description explains WHAT, WHY, what decisions were made, what's missing
 - Every PR references its issue (`Refs #N` or `Closes #N`)
 
+## Development Workflow
+
+### Phase 0: Environment Setup
+
+If the project is not yet initialized:
+
+1. Initialize npm package (`package.json` with `"type": "module"`)
+2. Configure TypeScript (strict mode, ES2022 target, Node16 resolution)
+3. Configure ESLint (flat config + typescript-eslint strict) and Prettier
+4. Configure Vitest (100% coverage thresholds) and Stryker (mutation testing)
+5. Set up CI pipeline (`.github/workflows/ci.yml`): typecheck → lint → format → test → build
+6. Create directory structure (`src/`, `tests/`)
+7. Define domain types from spec in `src/types.ts`
+8. Verify: `npm run build` and `npm run test` both pass (even if no tests yet)
+
+If the project is already set up, skip to Phase 1.
+
+### Phase 1: Spec Decomposition
+
+1. Read the full specification (Issue #1)
+2. Decompose into sub-issues by **AC groups + dependency graph**
+3. Each sub-issue contains:
+   - Scope (what this issue covers)
+   - Relevant AC from spec (copy the Given/When/Then)
+   - Files to create/modify
+   - Dependencies (`Depends on: #N`)
+4. Order follows dependency graph: types/utilities first → core logic → features building on top
+5. Create all sub-issues before starting implementation
+
+### Phase 2: Per-Issue Implementation (TDD cycle)
+
+For each issue, in dependency order:
+
+1. Create feature branch: `feat/<issue-number>-<short-description>`
+2. Open Draft PR immediately (CI feedback from first commit)
+3. **Write tests first** from acceptance criteria (red phase)
+   - Each `describe` block maps to an AC category
+   - Expected values come from AC, not from code observation
+4. **Implement** to make tests pass (green phase)
+5. **Refactor** if needed (keep tests green)
+6. Run full test suite: `npm run test`
+7. Run type check: `npm run typecheck`
+8. Run lint: `npm run lint`
+9. Commit with conventional message: `feat(<scope>): <description>` + `Refs #N`
+10. Update issue with what was done (see Phase 4)
+11. Mark PR as Ready when all CI checks pass
+
+### Phase 3: When Stuck
+
+If tests fail after 2 fix attempts and the root cause is not obvious:
+
+1. **Stop** — do not burn tokens repeating the same approach
+2. **Document** in the current issue: what you tried, what failed, error output
+3. **Create a child fix issue** with:
+   - Title: `fix(<scope>): <description of problem>`
+   - Body: what was tried, what failed, relevant error output, current state
+   - Label: `Depends on: parent issue`
+4. End current session — a fresh session will pick up the child issue
+
+**Limits:** Max 3 child fix issues per parent. After 3 failed attempts → mark parent as blocked, move on.
+
+### Phase 4: Issue Documentation
+
+After each session, update the issue with a comment:
+
+- **What was done:** brief summary of implementation
+- **Test results:** which tests pass/fail, coverage
+- **Decisions:** any design decisions and rationale
+- **Status:** done / in progress / blocked
+- **Remaining:** what's left to do (if any)
+
+This documentation serves the next agent session — write for someone with fresh context who needs to continue your work.
+
 ## Issue Decomposition
 
 Spec (Issue #1) is decomposed into sub-issues by **AC groups + dependency graph**:
