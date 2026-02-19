@@ -1,6 +1,6 @@
-// ── States ──────────────────────────────────────────────────────────
+// ── Status ──────────────────────────────────────────────────────────
 
-export type DunningState =
+export type DunningStatus =
   | "ISSUED"
   | "DUE_SOON"
   | "OVERDUE"
@@ -16,22 +16,21 @@ export type DunningState =
 
 // ── Events ──────────────────────────────────────────────────────────
 
-export type DunningEventType =
-  | "DAY_PASSED"
-  | "PAYMENT_RECEIVED"
-  | "INVOICE_CANCELLED"
-  | "DUNNING_PAUSED"
-  | "DUNNING_RESUMED"
-  | "MANUAL_ADVANCE";
+export type EventType =
+  | "tick"
+  | "payment_received"
+  | "invoice_cancelled"
+  | "dunning_paused"
+  | "dunning_resumed"
+  | "manual_advance";
 
 export interface DunningEvent {
-  type: DunningEventType;
-  timestamp: Date;
+  type: EventType;
 }
 
 // ── Actions ─────────────────────────────────────────────────────────
 
-export type ActionType = "SEND_EMAIL" | "SUSPEND_SERVICE" | "RESUME_SERVICE";
+export type ActionType = "send_email" | "suspend_service" | "resume_service";
 
 export interface ActionDescriptor {
   type: ActionType;
@@ -41,25 +40,24 @@ export interface ActionDescriptor {
 // ── Configuration ───────────────────────────────────────────────────
 
 export interface DunningConfig {
-  timeouts: Partial<Record<DunningState, number>>;
-  holidays: Date[];
+  timeouts?: Partial<Record<DunningStatus, number>>;
+  holidays?: Date[];
 }
 
-// ── Dunning Instance ────────────────────────────────────────────────
+// ── State ───────────────────────────────────────────────────────────
 
-export interface DunningInstance {
-  invoiceId: string;
+export interface DunningState {
+  status: DunningStatus;
   dueDate: Date;
-  state: DunningState;
   stateEnteredAt: Date;
   config: DunningConfig;
-  pausedFrom?: DunningState;
+  pausedFrom?: DunningStatus;
   pausedElapsed?: number;
 }
 
-// ── Transition Result ───────────────────────────────────────────────
+// ── Process Result ──────────────────────────────────────────────────
 
-export interface TransitionResult {
-  newState: DunningState;
+export interface ProcessResult {
+  state: DunningState;
   actions: ActionDescriptor[];
 }
